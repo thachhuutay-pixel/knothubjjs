@@ -1,0 +1,1006 @@
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- ==========================================
+-- 1. TẠO KHUNG GIAO DIỆN CHÍNH (PINK + RAINBOW BORDER)
+-- ==========================================
+local CustomUI = {}
+CustomUI.__index = CustomUI
+
+function CustomUI.CreateWindow(titleText)
+    local self = setmetatable({}, CustomUI)
+    
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "PinkTransparentGUI"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 600, 0, 420)
+    mainFrame.Position = UDim2.new(0.5, -300, 0.5, -210)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(255, 110, 165)
+    mainFrame.BackgroundTransparency = 0.35
+    mainFrame.BorderSizePixel = 0
+    mainFrame.ClipsDescendants = true
+    mainFrame.Parent = screenGui
+    
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 12)
+    mainCorner.Parent = mainFrame
+    
+    local mainStroke = Instance.new("UIStroke")
+    mainStroke.Thickness = 2.5
+    mainStroke.Parent = mainFrame
+    
+    RunService.RenderStepped:Connect(function()
+        if mainStroke and mainStroke.Parent then
+            mainStroke.Color = Color3.fromHSV((tick() % 5) / 5, 1, 1)
+        end
+    end)
+    
+    local topBar = Instance.new("Frame")
+    topBar.Name = "TopBar"
+    topBar.Size = UDim2.new(1, 0, 0, 42)
+    topBar.BackgroundColor3 = Color3.fromRGB(220, 80, 140)
+    topBar.BackgroundTransparency = 0.2
+    topBar.BorderSizePixel = 0
+    topBar.Parent = mainFrame
+    
+    local topBarCorner = Instance.new("UICorner")
+    topBarCorner.CornerRadius = UDim.new(0, 12)
+    topBarCorner.Parent = topBar
+    
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, -120, 1, 0)
+    titleLabel.Position = UDim2.new(0, 15, 0, 0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = titleText or "💖 PINK HUB - PRO"
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.TextSize = 15
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = topBar
+
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 32, 0, 32)
+    closeBtn.Position = UDim2.new(1, -38, 0.5, -16)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 40, 80)
+    closeBtn.BackgroundTransparency = 0.2
+    closeBtn.Text = "x"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.TextSize = 14
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.Parent = topBar
+    
+    local cbCorner = Instance.new("UICorner")
+    cbCorner.CornerRadius = UDim.new(0, 8)
+    cbCorner.Parent = closeBtn
+
+    closeBtn.MouseButton1Click:Connect(function()
+        screenGui:Destroy()
+    end)
+
+    local minimized = false
+    local minimizeBtn = Instance.new("TextButton")
+    minimizeBtn.Size = UDim2.new(0, 32, 0, 32)
+    minimizeBtn.Position = UDim2.new(1, -76, 0.5, -16)
+    minimizeBtn.BackgroundColor3 = Color3.fromRGB(150, 60, 100)
+    minimizeBtn.BackgroundTransparency = 0.2
+    minimizeBtn.Text = "-"
+    minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    minimizeBtn.TextSize = 16
+    minimizeBtn.Font = Enum.Font.GothamBold
+    minimizeBtn.Parent = topBar
+    
+    local mbCorner = Instance.new("UICorner")
+    mbCorner.CornerRadius = UDim.new(0, 8)
+    mbCorner.Parent = minimizeBtn
+
+    local sideBar = Instance.new("Frame")
+    sideBar.Name = "SideBar"
+    sideBar.Size = UDim2.new(0, 150, 1, -42)
+    sideBar.Position = UDim2.new(0, 0, 0, 42)
+    sideBar.BackgroundColor3 = Color3.fromRGB(200, 80, 130)
+    sideBar.BackgroundTransparency = 0.5
+    sideBar.BorderSizePixel = 0
+    sideBar.Parent = mainFrame
+
+    local tabListLayout = Instance.new("UIListLayout")
+    tabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    tabListLayout.Padding = UDim.new(0, 6)
+    tabListLayout.Parent = sideBar
+
+    local tabPadding = Instance.new("UIPadding")
+    tabPadding.PaddingTop = UDim.new(0, 10)
+    tabPadding.PaddingLeft = UDim.new(0, 8)
+    tabPadding.PaddingRight = UDim.new(0, 8)
+    tabPadding.Parent = sideBar
+
+    local container = Instance.new("Frame")
+    container.Name = "Container"
+    container.Size = UDim2.new(1, -150, 1, -42)
+    container.Position = UDim2.new(0, 150, 0, 42)
+    container.BackgroundTransparency = 1
+    container.Parent = mainFrame
+
+    minimizeBtn.MouseButton1Click:Connect(function()
+        minimized = not minimized
+        sideBar.Visible = not minimized
+        container.Visible = not minimized
+        TweenService:Create(mainFrame, TweenInfo.new(0.2), {
+            Size = minimized and UDim2.new(0, 600, 0, 42) or UDim2.new(0, 600, 0, 420)
+        }):Play()
+    end)
+
+    local dragging, dragStart, startPos
+    topBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = mainFrame.Position
+        end
+    end)
+    topBar.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    local floatIcon = Instance.new("TextButton")
+    floatIcon.Name = "FloatingIcon"
+    floatIcon.Size = UDim2.new(0, 45, 0, 45)
+    floatIcon.Position = UDim2.new(0, 20, 0.5, -25)
+    floatIcon.BackgroundColor3 = Color3.fromRGB(255, 105, 180)
+    floatIcon.Text = "K"
+    floatIcon.TextSize = 20
+    floatIcon.Parent = screenGui
+
+    local fiCorner = Instance.new("UICorner")
+    fiCorner.CornerRadius = UDim.new(1, 0)
+    fiCorner.Parent = floatIcon
+
+    local fiStroke = Instance.new("UIStroke")
+    fiStroke.Color = Color3.fromRGB(255, 255, 255)
+    fiStroke.Thickness = 2
+    fiStroke.Parent = floatIcon
+
+    floatIcon.MouseButton1Click:Connect(function()
+        mainFrame.Visible = not mainFrame.Visible
+    end)
+
+    self.ScreenGui = screenGui
+    self.MainFrame = mainFrame
+    self.SideBar = sideBar
+    self.Container = container
+    self.Tabs = {}
+    self.CurrentTab = nil
+
+    return self
+end
+
+-- ==========================================
+-- 2. QUẢN LÝ TAB VÀ COMPONENTS
+-- ==========================================
+function CustomUI:AddTab(tabName)
+    local tabObj = {}
+    
+    local tabBtn = Instance.new("TextButton")
+    tabBtn.Name = tabName .. "TabBtn"
+    tabBtn.Size = UDim2.new(1, 0, 0, 36)
+    tabBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    tabBtn.BackgroundTransparency = 1
+    tabBtn.Text = "  " .. tabName
+    tabBtn.TextColor3 = Color3.fromRGB(240, 220, 230)
+    tabBtn.Font = Enum.Font.GothamMedium
+    tabBtn.TextSize = 13
+    tabBtn.TextXAlignment = Enum.TextXAlignment.Left
+    tabBtn.Parent = self.SideBar
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 8)
+    btnCorner.Parent = tabBtn
+
+    local tabFrame = Instance.new("ScrollingFrame")
+    tabFrame.Name = tabName .. "Frame"
+    tabFrame.Size = UDim2.new(1, 0, 1, 0)
+    tabFrame.BackgroundTransparency = 1
+    tabFrame.Visible = false
+    tabFrame.ScrollBarThickness = 3
+    tabFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
+    tabFrame.Parent = self.Container
+
+    local contentLayout = Instance.new("UIListLayout")
+    contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    contentLayout.Padding = UDim.new(0, 8)
+    contentLayout.Parent = tabFrame
+
+    local contentPadding = Instance.new("UIPadding")
+    contentPadding.PaddingTop = UDim.new(0, 10)
+    contentPadding.PaddingLeft = UDim.new(0, 12)
+    contentPadding.PaddingRight = UDim.new(0, 12)
+    contentPadding.Parent = tabFrame
+
+    contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        tabFrame.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y + 20)
+    end)
+
+    tabBtn.MouseButton1Click:Connect(function()
+        for _, t in pairs(self.Tabs) do
+            t.Frame.Visible = false
+            TweenService:Create(t.Button, TweenInfo.new(0.2), {
+                BackgroundTransparency = 1,
+                TextColor3 = Color3.fromRGB(240, 220, 230)
+            }):Play()
+        end
+        tabFrame.Visible = true
+        TweenService:Create(tabBtn, TweenInfo.new(0.2), {
+            BackgroundTransparency = 0.7,
+            TextColor3 = Color3.fromRGB(255, 255, 255)
+        }):Play()
+        self.CurrentTab = tabObj
+    end)
+
+    tabObj.Button = tabBtn
+    tabObj.Frame = tabFrame
+
+    if #self.Tabs == 0 then
+        tabFrame.Visible = true
+        tabBtn.BackgroundTransparency = 0.7
+        tabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        self.CurrentTab = tabObj
+    end
+
+    table.insert(self.Tabs, tabObj)
+
+    function tabObj:AddToggle(text, default, callback)
+        local toggled = default or false
+        
+        local toggleFrame = Instance.new("Frame")
+        toggleFrame.Size = UDim2.new(1, 0, 0, 38)
+        toggleFrame.BackgroundColor3 = Color3.fromRGB(210, 80, 130)
+        toggleFrame.BackgroundTransparency = 0.4
+        toggleFrame.Parent = tabFrame
+        
+        local tfCorner = Instance.new("UICorner")
+        tfCorner.CornerRadius = UDim.new(0, 8)
+        tfCorner.Parent = toggleFrame
+
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, -55, 1, 0)
+        label.Position = UDim2.new(0, 12, 0, 0)
+        label.BackgroundTransparency = 1
+        label.Text = text
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.Font = Enum.Font.Gotham
+        label.TextSize = 13
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Parent = toggleFrame
+
+        local switch = Instance.new("TextButton")
+        switch.Size = UDim2.new(0, 40, 0, 22)
+        switch.Position = UDim2.new(1, -48, 0.5, -11)
+        switch.BackgroundColor3 = toggled and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 50, 90)
+        switch.Text = ""
+        switch.Parent = toggleFrame
+
+        local swCorner = Instance.new("UICorner")
+        swCorner.CornerRadius = UDim.new(1, 0)
+        swCorner.Parent = switch
+
+        local dot = Instance.new("Frame")
+        dot.Size = UDim2.new(0, 18, 0, 18)
+        dot.Position = toggled and UDim2.new(1, -20, 0.5, -9) or UDim2.new(0, 2, 0.5, -9)
+        dot.BackgroundColor3 = toggled and Color3.fromRGB(255, 105, 180) or Color3.fromRGB(255, 255, 255)
+        dot.Parent = switch
+
+        local dotCorner = Instance.new("UICorner")
+        dotCorner.CornerRadius = UDim.new(1, 0)
+        dotCorner.Parent = dot
+
+        switch.MouseButton1Click:Connect(function()
+            toggled = not toggled
+            local targetPos = toggled and UDim2.new(1, -20, 0.5, -9) or UDim2.new(0, 2, 0.5, -9)
+            local targetColor = toggled and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 50, 90)
+            local dotColor = toggled and Color3.fromRGB(255, 105, 180) or Color3.fromRGB(255, 255, 255)
+            
+            TweenService:Create(dot, TweenInfo.new(0.15), {Position = targetPos, BackgroundColor3 = dotColor}):Play()
+            TweenService:Create(switch, TweenInfo.new(0.15), {BackgroundColor3 = targetColor}):Play()
+            
+            if callback then callback(toggled) end
+        end)
+    end
+
+    function tabObj:AddSlider(text, min, max, default, callback)
+        local value = default or min
+        
+        local sliderFrame = Instance.new("Frame")
+        sliderFrame.Size = UDim2.new(1, 0, 0, 52)
+        sliderFrame.BackgroundColor3 = Color3.fromRGB(210, 80, 130)
+        sliderFrame.BackgroundTransparency = 0.4
+        sliderFrame.Parent = tabFrame
+
+        local sfCorner = Instance.new("UICorner")
+        sfCorner.CornerRadius = UDim.new(0, 8)
+        sfCorner.Parent = sliderFrame
+
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, -60, 0, 25)
+        label.Position = UDim2.new(0, 12, 0, 3)
+        label.BackgroundTransparency = 1
+        label.Text = text
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.Font = Enum.Font.Gotham
+        label.TextSize = 13
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Parent = sliderFrame
+
+        local valLabel = Instance.new("TextLabel")
+        valLabel.Size = UDim2.new(0, 50, 0, 25)
+        valLabel.Position = UDim2.new(1, -58, 0, 3)
+        valLabel.BackgroundTransparency = 1
+        valLabel.Text = tostring(value)
+        valLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        valLabel.Font = Enum.Font.GothamBold
+        valLabel.TextSize = 13
+        valLabel.TextXAlignment = Enum.TextXAlignment.Right
+        valLabel.Parent = sliderFrame
+
+        local track = Instance.new("Frame")
+        track.Size = UDim2.new(1, -24, 0, 6)
+        track.Position = UDim2.new(0, 12, 0, 34)
+        track.BackgroundColor3 = Color3.fromRGB(150, 50, 90)
+        track.Parent = sliderFrame
+
+        local trCorner = Instance.new("UICorner")
+        trCorner.CornerRadius = UDim.new(1, 0)
+        trCorner.Parent = track
+
+        local fill = Instance.new("Frame")
+        fill.Size = UDim2.new((value - min) / (max - min), 0, 1, 0)
+        fill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        fill.Parent = track
+
+        local fillCorner = Instance.new("UICorner")
+        fillCorner.CornerRadius = UDim.new(1, 0)
+        fillCorner.Parent = fill
+
+        local draggingSlider = false
+        local function updateSlider(input)
+            local pos = math.clamp((input.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
+            value = math.floor(min + ((max - min) * pos))
+            fill.Size = UDim2.new(pos, 0, 1, 0)
+            valLabel.Text = tostring(value)
+            if callback then callback(value) end
+        end
+
+        track.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                draggingSlider = true
+                updateSlider(input)
+            end
+        end)
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                draggingSlider = false
+            end
+        end)
+        UserInputService.InputChanged:Connect(function(input)
+            if draggingSlider and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                updateSlider(input)
+            end
+        end)
+    end
+
+    return tabObj
+end
+
+-- ==========================================
+-- 3. LOGIC TÍNH NĂNG CHÍNH
+-- ==========================================
+
+local Window = CustomUI.CreateWindow("Knott_Hub | Made by: Hữu Tây")
+local MainTab = Window:AddTab("(Main) Chức năng")
+local VisualTab = Window:AddTab("ESP & Visuals")
+local LockOnTab = Window:AddTab("Lock On")
+
+local flyEnabled = false
+local flySpeed = 50
+local bodyVelocity, bodyGyro
+
+local lockClosestEnabled = false
+local lockTargetEnabled = false
+local selectedTargetPlayer = nil
+
+-- Auto Block variables
+local autoBlockEnabled = false
+local autoBlockRange = 25
+local showAutoBlockZone = false
+local isHoldingF = false
+
+-- Vùng 3D hình tròn nằm dưới chân/bụng nhân vật
+local zonePart = nil
+local function updateAutoBlockZonePart()
+    if showAutoBlockZone and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        if not zonePart or not zonePart.Parent then
+            zonePart = Instance.new("Part")
+            zonePart.Name = "AutoBlockZoneVisual"
+            zonePart.Anchored = true
+            zonePart.CanCollide = false
+            zonePart.Material = Enum.Material.Neon
+            zonePart.Color = Color3.fromRGB(255, 50, 100)
+            zonePart.Transparency = 0.3
+            zonePart.Size = Vector3.new(0.5, 1, 1)
+            
+            local mesh = Instance.new("CylinderMesh")
+            mesh.Parent = zonePart
+            zonePart.Parent = workspace
+        end
+        local root = LocalPlayer.Character.HumanoidRootPart
+        local diameter = autoBlockRange * 2
+        zonePart.CFrame = root.CFrame * CFrame.new(0, -2.5, 0) * CFrame.Angles(0, 0, math.rad(90))
+        zonePart.Size = Vector3.new(0.5, diameter, diameter)
+    else
+        if zonePart then
+            zonePart:Destroy()
+            zonePart = nil
+        end
+    end
+end
+
+-- --- HÀM LẤY NHÂN VẬT THẬT VÀ ĐANG HOẠT ĐỘNG CỦA PLAYER ---
+local function getValidCharacter(player)
+    if not player then return nil end
+    
+    local charactersFolder = workspace:FindFirstChild("Characters")
+    if charactersFolder then
+        for _, model in ipairs(charactersFolder:GetChildren()) do
+            if model:IsA("Model") and model.Name == player.Name then
+                local hum = model:FindFirstChildOfClass("Humanoid")
+                local root = model:FindFirstChild("HumanoidRootPart") or model.PrimaryPart
+                if hum and root and hum.Health > 0 then
+                    return model
+                end
+            end
+        end
+    end
+    
+    local char = player.Character
+    if char and char:IsA("Model") then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        local root = char:FindFirstChild("HumanoidRootPart") or char.PrimaryPart
+        if hum and root and hum.Health > 0 then
+            return char
+        end
+    end
+    
+    return nil
+end
+
+-- --- FLY LOGIC ---
+local function toggleFly(state)
+    flyEnabled = state
+    local char = getValidCharacter(LocalPlayer)
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+
+    if flyEnabled then
+        local root = char.HumanoidRootPart
+        bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bodyVelocity.Velocity = Vector3.new(0,0,0)
+        bodyVelocity.Parent = root
+
+        bodyGyro = Instance.new("BodyGyro")
+        bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+        bodyGyro.CFrame = root.CFrame
+        bodyGyro.Parent = root
+
+        task.spawn(function()
+            while flyEnabled do
+                RunService.RenderStepped:Wait()
+                local currentLocalChar = getValidCharacter(LocalPlayer)
+                if not currentLocalChar or not currentLocalChar:FindFirstChild("HumanoidRootPart") then break end
+                local camCF = Camera.CFrame
+                local dir = Vector3.new(0, 0, 0)
+                
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + camCF.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - camCF.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - camCF.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + camCF.RightVector end
+
+                bodyVelocity.Velocity = dir * flySpeed
+                bodyGyro.CFrame = camCF
+            end
+        end)
+    else
+        if bodyVelocity then bodyVelocity:Destroy() end
+        if bodyGyro then bodyGyro:Destroy() end
+    end
+end
+
+-- --- HÀM TÌM GẦN NHẤT ---
+local function getClosestPlayer()
+    local target = nil
+    local shortestDist = math.huge
+    local mousePos = UserInputService:GetMouseLocation()
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local char = getValidCharacter(player)
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local pos, onScreen = Camera:WorldToViewportPoint(char.HumanoidRootPart.Position)
+                if onScreen then
+                    local dist = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+                    if dist < shortestDist then
+                        shortestDist = dist
+                        target = player
+                    end
+                end
+            end
+        end
+    end
+    return target
+end
+
+-- --- XỬ LÝ GIỮ PHÍM F ---
+local function setHoldF(state)
+    pcall(function()
+        if state and not isHoldingF then
+            isHoldingF = true
+            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+        elseif not state and isHoldingF then
+            isHoldingF = false
+            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+        end
+    end)
+end
+
+-- --- RENDER LOOP (AUTO BLOCK & LOCK ON) ---
+RunService.RenderStepped:Connect(function()
+    local myChar = getValidCharacter(LocalPlayer)
+    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+
+    -- 1. Auto Block Logic
+    local autoBlockTarget = nil
+    if autoBlockEnabled and myRoot then
+        local charactersFolder = workspace:FindFirstChild("Characters")
+        if charactersFolder then
+            local shortestDist = autoBlockRange
+            for _, model in ipairs(charactersFolder:GetChildren()) do
+                if model:IsA("Model") then
+                    local isLocalCharacter = (model == myChar)
+                    if not isLocalCharacter then
+                        local ownerCheck = Players:FindFirstChild(model.Name)
+                        if ownerCheck == LocalPlayer then
+                            isLocalCharacter = true
+                        end
+                    end
+
+                    if not isLocalCharacter then
+                        local rootPart = model:FindFirstChild("HumanoidRootPart") or model.PrimaryPart or model:FindFirstChildOfClass("Part")
+                        local hum = model:FindFirstChildOfClass("Humanoid")
+                        local infoFolder = model:FindFirstChild("Info")
+                        
+                        if rootPart and hum and hum.Health > 0 and infoFolder and infoFolder:FindFirstChild("InSkill") then
+                            local dist = (rootPart.Position - myRoot.Position).Magnitude
+                            if dist <= shortestDist then
+                                shortestDist = dist
+                                autoBlockTarget = model
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    if autoBlockTarget then
+        setHoldF(true)
+        local targetPart = autoBlockTarget:FindFirstChild("HumanoidRootPart") or autoBlockTarget.PrimaryPart or autoBlockTarget:FindFirstChildOfClass("Part")
+        if targetPart then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position)
+        end
+    else
+        setHoldF(false)
+
+        -- 2. Lock On thông thường khi không Auto Block
+        if lockClosestEnabled then
+            local target = getClosestPlayer()
+            local targetChar = getValidCharacter(target)
+            if targetChar and targetChar:FindFirstChild("HumanoidRootPart") then
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetChar.HumanoidRootPart.Position)
+            end
+        elseif lockTargetEnabled and selectedTargetPlayer then
+            local targetChar = getValidCharacter(selectedTargetPlayer)
+            if targetChar and targetChar:FindFirstChild("HumanoidRootPart") then
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetChar.HumanoidRootPart.Position)
+            end
+        end
+    end
+
+    updateAutoBlockZonePart()
+end)
+
+-- --- DANH SÁCH CHỌN MỤC TIÊU ---
+local targetListFrame = Instance.new("ScrollingFrame")
+targetListFrame.Name = "TargetListFrame"
+targetListFrame.Size = UDim2.new(1, 0, 0, 220)
+targetListFrame.BackgroundTransparency = 1
+targetListFrame.ScrollBarThickness = 3
+targetListFrame.Visible = false
+targetListFrame.Parent = LockOnTab.Frame
+
+local targetListLayout = Instance.new("UIListLayout")
+targetListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+targetListLayout.Padding = UDim.new(0, 6)
+targetListLayout.Parent = targetListFrame
+
+local targetListPadding = Instance.new("UIPadding")
+targetListPadding.PaddingTop = UDim.new(0, 5)
+targetListPadding.PaddingLeft = UDim.new(0, 2)
+targetListPadding.PaddingRight = UDim.new(0, 2)
+targetListPadding.Parent = targetListFrame
+
+targetListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    targetListFrame.CanvasSize = UDim2.new(0, 0, 0, targetListLayout.AbsoluteContentSize.Y + 10)
+end)
+
+local function updatePlayerList()
+    for _, child in ipairs(targetListFrame:GetChildren()) do
+        if child:IsA("TextButton") then child:Destroy() end
+    end
+
+    local clearBtn = Instance.new("TextButton")
+    clearBtn.Size = UDim2.new(1, 0, 0, 36)
+    clearBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 80)
+    clearBtn.BackgroundTransparency = 0.3
+    clearBtn.Text = "❌ Hủy Khóa Mục Tiêu Này"
+    clearBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    clearBtn.Font = Enum.Font.GothamBold
+    clearBtn.TextSize = 13
+    clearBtn.Parent = targetListFrame
+    
+    local cbCorner = Instance.new("UICorner")
+    cbCorner.CornerRadius = UDim.new(0, 8)
+    cbCorner.Parent = clearBtn
+
+    clearBtn.MouseButton1Click:Connect(function()
+        selectedTargetPlayer = nil
+        clearBtn.Text = "✅ Đã hủy khóa mục tiêu!"
+        task.wait(1)
+        clearBtn.Text = "❌ Hủy Khóa Mục Tiêu Này"
+    end)
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, 0, 0, 50)
+            btn.BackgroundColor3 = Color3.fromRGB(210, 80, 130)
+            btn.BackgroundTransparency = 0.4
+            btn.Text = ""
+            btn.Parent = targetListFrame
+
+            local btnCorner = Instance.new("UICorner")
+            btnCorner.CornerRadius = UDim.new(0, 8)
+            btnCorner.Parent = btn
+
+            local avatarImg = Instance.new("ImageLabel")
+            avatarImg.Size = UDim2.new(0, 38, 0, 38)
+            avatarImg.Position = UDim2.new(0, 6, 0.5, -19)
+            avatarImg.BackgroundTransparency = 1
+            avatarImg.Parent = btn
+
+            local avCorner = Instance.new("UICorner")
+            avCorner.CornerRadius = UDim.new(1, 0)
+            avCorner.Parent = avatarImg
+
+            task.spawn(function()
+                local success, thumb = pcall(function()
+                    return Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size42x42)
+                end)
+                if success and thumb then avatarImg.Image = thumb end
+            end)
+
+            local infoLabel = Instance.new("TextLabel")
+            infoLabel.Size = UDim2.new(1, -55, 1, 0)
+            infoLabel.Position = UDim2.new(0, 52, 0, 0)
+            infoLabel.BackgroundTransparency = 1
+            infoLabel.Text = string.format("%s\n(@%s)", player.DisplayName, player.Name)
+            infoLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            infoLabel.Font = Enum.Font.Gotham
+            infoLabel.TextSize = 13
+            infoLabel.TextXAlignment = Enum.TextXAlignment.Left
+            infoLabel.Parent = btn
+
+            btn.MouseButton1Click:Connect(function()
+                selectedTargetPlayer = player
+                infoLabel.TextColor3 = Color3.fromRGB(255, 220, 100)
+                infoLabel.Text = string.format("⭐ Đang Khóa: %s (@%s)", player.DisplayName, player.Name)
+                task.delay(1.5, function()
+                    if infoLabel and infoLabel.Parent then
+                        infoLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        infoLabel.Text = string.format("%s\n(@%s)", player.DisplayName, player.Name)
+                    end
+                end)
+            end)
+        end
+    end
+end
+
+Players.PlayerAdded:Connect(function(p)
+    if lockTargetEnabled then updatePlayerList() end
+end)
+Players.PlayerRemoving:Connect(function(p)
+    if lockTargetEnabled then updatePlayerList() end
+end)
+
+-- ==========================================
+-- 4. ESP SYSTEM (TIÊU CHUẨN + onScreen CHECK)
+-- ==========================================
+local espBoxEnabled = false
+local espTracerEnabled = false
+local espSkeletonEnabled = false
+local espInfoEnabled = false
+local espItemsEnabled = false
+
+local espDrawings = {}
+local itemDrawings = {}
+local itemHighlights = {}
+
+local function createESP(player)
+    if player == LocalPlayer or espDrawings[player] then return end
+    espDrawings[player] = {
+        Box = Drawing.new("Square"),
+        Tracer = Drawing.new("Line"),
+        InfoText = Drawing.new("Text"),
+        HeadToTorso = Drawing.new("Line"),
+        TorsoToLeftArm = Drawing.new("Line"),
+        TorsoToRightArm = Drawing.new("Line"),
+        TorsoToLeftLeg = Drawing.new("Line"),
+        TorsoToRightLeg = Drawing.new("Line")
+    }
+    local d = espDrawings[player]
+    d.Box.Color = Color3.fromRGB(255, 150, 200)
+    d.Box.Thickness = 1.5
+    d.Box.Filled = false
+    d.Tracer.Color = Color3.fromRGB(255, 105, 180)
+    d.Tracer.Thickness = 1
+    d.InfoText.Size = 13
+    d.InfoText.Center = true
+    d.InfoText.Outline = true
+    d.InfoText.Color = Color3.fromRGB(255, 255, 255)
+end
+
+local function removeESP(player)
+    if espDrawings[player] then
+        for _, obj in pairs(espDrawings[player]) do
+            pcall(function() obj:Remove() end)
+        end
+        espDrawings[player] = nil
+    end
+end
+
+Players.PlayerAdded:Connect(createESP)
+Players.PlayerRemoving:Connect(removeESP)
+for _, p in ipairs(Players:GetPlayers()) do createESP(p) end
+
+RunService.RenderStepped:Connect(function()
+    local myChar = getValidCharacter(LocalPlayer)
+    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+
+    -- 1. Player ESP Render (Có onScreen check tiêu chuẩn)
+    for player, drawings in pairs(espDrawings) do
+        local char = getValidCharacter(player)
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+
+        if char and root and hum and hum.Health > 0 and myRoot then
+            local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
+
+            if espBoxEnabled and onScreen then
+                local sizeY = (Camera:WorldToViewportPoint(root.Position - Vector3.new(0, 3, 0)).Y - Camera:WorldToViewportPoint(root.Position + Vector3.new(0, 3, 0)).Y)
+                local boxSize = Vector2.new(math.abs(sizeY) * 0.6, math.abs(sizeY))
+                drawings.Box.Size = boxSize
+                drawings.Box.Position = Vector2.new(pos.X - boxSize.X / 2, pos.Y - boxSize.Y / 2)
+                drawings.Box.Visible = true
+            else
+                drawings.Box.Visible = false
+            end
+
+            if espTracerEnabled and onScreen then
+                drawings.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                drawings.Tracer.To = Vector2.new(pos.X, pos.Y)
+                drawings.Tracer.Visible = true
+            else
+                drawings.Tracer.Visible = false
+            end
+
+            if espInfoEnabled and onScreen then
+                local dist = math.floor((root.Position - myRoot.Position).Magnitude)
+                local health = math.floor(hum.Health)
+                local maxHealth = math.floor(hum.MaxHealth)
+                drawings.InfoText.Text = string.format("%s\n[HP: %d/%d] [%dm]", player.DisplayName, health, maxHealth, dist)
+                drawings.InfoText.Position = Vector2.new(pos.X, pos.Y - 45)
+                drawings.InfoText.Visible = true
+            else
+                drawings.InfoText.Visible = false
+            end
+
+            if espSkeletonEnabled and onScreen then
+                local head = char:FindFirstChild("Head")
+                local torso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
+                local lArm = char:FindFirstChild("LeftUpperArm") or char:FindFirstChild("Left Arm")
+                local rArm = char:FindFirstChild("RightUpperArm") or char:FindFirstChild("Right Arm")
+                local lLeg = char:FindFirstChild("LeftUpperLeg") or char:FindFirstChild("Left Leg")
+                local rLeg = char:FindFirstChild("RightUpperLeg") or char:FindFirstChild("Right Leg")
+
+                local function connectBone(line, p1, p2)
+                    if p1 and p2 then
+                        local pos1, vis1 = Camera:WorldToViewportPoint(p1.Position)
+                        local pos2, vis2 = Camera:WorldToViewportPoint(p2.Position)
+                        if vis1 and vis2 then
+                            line.From = Vector2.new(pos1.X, pos1.Y)
+                            line.To = Vector2.new(pos2.X, pos2.Y)
+                            line.Visible = true
+                            return
+                        end
+                    end
+                    line.Visible = false
+                end
+
+                connectBone(drawings.HeadToTorso, head, torso)
+                connectBone(drawings.TorsoToLeftArm, torso, lArm)
+                connectBone(drawings.TorsoToRightArm, torso, rArm)
+                connectBone(drawings.TorsoToLeftLeg, torso, lLeg)
+                connectBone(drawings.TorsoToRightLeg, torso, rLeg)
+            else
+                drawings.HeadToTorso.Visible = false
+                drawings.TorsoToLeftArm.Visible = false
+                drawings.TorsoToRightArm.Visible = false
+                drawings.TorsoToLeftLeg.Visible = false
+                drawings.TorsoToRightLeg.Visible = false
+            end
+        else
+            for _, obj in pairs(drawings) do obj.Visible = false end
+        end
+    end
+
+    -- 2. Items ESP Render (Workspace.Items)
+    local itemsFolder = workspace:FindFirstChild("Items")
+    if espItemsEnabled and itemsFolder then
+        local currentItems = {}
+        for _, item in ipairs(itemsFolder:GetChildren()) do
+            currentItems[item] = true
+            
+            if not itemDrawings[item] then
+                itemDrawings[item] = Drawing.new("Text")
+                itemDrawings[item].Size = 13
+                itemDrawings[item].Center = true
+                itemDrawings[item].Outline = true
+                itemDrawings[item].Color = Color3.fromRGB(255, 215, 0)
+            end
+
+            if not itemHighlights[item] and item:IsA("Instance") then
+                local highlight = Instance.new("Highlight")
+                highlight.Name = "ItemESPんですよ"
+                highlight.Adornee = item
+                highlight.FillColor = Color3.fromRGB(255, 215, 0)
+                highlight.FillTransparency = 0.5
+                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                highlight.OutlineTransparency = 0
+                highlight.Parent = item
+                itemHighlights[item] = highlight
+            end
+
+            local part = item:IsA("Model") and (item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart")) or (item:IsA("BasePart") and item)
+            if part then
+                local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
+                local dist = myRoot and math.floor((part.Position - myRoot.Position).Magnitude) or 0
+                if onScreen then
+                    itemDrawings[item].Text = string.format("%s [%dm]", item.Name, dist)
+                    itemDrawings[item].Position = Vector2.new(pos.X, pos.Y)
+                    itemDrawings[item].Visible = true
+                else
+                    itemDrawings[item].Visible = false
+                end
+            else
+                itemDrawings[item].Visible = false
+            end
+        end
+
+        for item, drawing in pairs(itemDrawings) do
+            if not currentItems[item] then
+                pcall(function() drawing:Remove() end)
+                itemDrawings[item] = nil
+                if itemHighlights[item] then
+                    pcall(function() itemHighlights[item]:Destroy() end)
+                    itemHighlights[item] = nil
+                end
+            end
+        end
+    else
+        for _, drawing in pairs(itemDrawings) do
+            drawing.Visible = false
+        end
+        for _, hl in pairs(itemHighlights) do
+            if hl then hl:Destroy() end
+        end
+        itemHighlights = {}
+    end
+end)
+
+-- ==========================================
+-- 5. ĐĂNG KÝ GIAO DIỆN VÀO CÁC TAB
+-- ==========================================
+
+MainTab:AddToggle("Bay (Fly)", false, function(state)
+    toggleFly(state)
+end)
+
+MainTab:AddSlider("Tốc độ bay", 10, 300, 50, function(val)
+    flySpeed = val
+end)
+
+MainTab:AddToggle("🤖 Auto Block (InSkill)", false, function(state)
+    autoBlockEnabled = state
+    if not state then setHoldF(false) end
+end)
+
+MainTab:AddSlider("Bán kính Auto Block", 5, 100, 25, function(val)
+    autoBlockRange = val
+end)
+
+MainTab:AddToggle("👁️ Hiển thị Vùng Auto Block", false, function(state)
+    showAutoBlockZone = state
+    if not state and zonePart then
+        zonePart:Destroy()
+        zonePart = nil
+    end
+end)
+
+-- Tab Lock On
+LockOnTab:AddToggle("Khóa người chơi gần nhất (Closest)", false, function(state)
+    lockClosestEnabled = state
+end)
+
+LockOnTab:AddToggle("Khóa mục tiêu chỉ định (Target Select)", false, function(state)
+    lockTargetEnabled = state
+    targetListFrame.Visible = state
+    if state then
+        updatePlayerList()
+    else
+        selectedTargetPlayer = nil
+    end
+end)
+
+-- Tab ESP & Visuals
+VisualTab:AddToggle("ESP Hộp (Box)", false, function(state)
+    espBoxEnabled = state
+end)
+
+VisualTab:AddToggle("ESP Thông tin (Tên, Máu, Khoảng cách)", false, function(state)
+    espInfoEnabled = state
+end)
+
+VisualTab:AddToggle("Đường kẻ (Tracer)", false, function(state)
+    espTracerEnabled = state
+end)
+
+VisualTab:AddToggle("ESP Khung xương (Skeleton)", false, function(state)
+    espSkeletonEnabled = state
+end)
+
+VisualTab:AddToggle("ESP Vật Phẩm (Items & Highlight)", false, function(state)
+    espItemsEnabled = state
+end)
