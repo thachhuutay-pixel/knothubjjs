@@ -7,6 +7,49 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
 -- ==========================================
+-- 0. POPUP HIỂN THỊ TÊN KNOT_HUB & DEV "HỮU TÂY"
+-- ==========================================
+task.spawn(function()
+    local pGui = LocalPlayer:WaitForChild("PlayerGui")
+    local popGui = Instance.new("ScreenGui")
+    popGui.Name = "KnotHubPopup"
+    popGui.ResetOnSpawn = false
+    popGui.Parent = pGui
+    
+    local popFrame = Instance.new("Frame")
+    popFrame.Size = UDim2.new(0, 320, 0, 75)
+    popFrame.Position = UDim2.new(0.5, -160, 0, -100)
+    popFrame.BackgroundColor3 = Color3.fromRGB(255, 110, 165)
+    popFrame.BackgroundTransparency = 0.25
+    popFrame.BorderSizePixel = 0
+    popFrame.Parent = popGui
+    
+    local popCorner = Instance.new("UICorner")
+    popCorner.CornerRadius = UDim.new(0, 12)
+    popCorner.Parent = popFrame
+    
+    local popStroke = Instance.new("UIStroke")
+    popStroke.Thickness = 2
+    popStroke.Color = Color3.fromRGB(255, 255, 255)
+    popStroke.Parent = popFrame
+    
+    local popText = Instance.new("TextLabel")
+    popText.Size = UDim2.new(1, 0, 1, 0)
+    popText.BackgroundTransparency = 1
+    popText.Text = "💖 Knot_Hub\nDeveloper: Hữu Tây"
+    popText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    popText.TextSize = 15
+    popText.Font = Enum.Font.GothamBold
+    popText.Parent = popFrame
+    
+    popFrame:TweenPosition(UDim2.new(0.5, -160, 0, 40), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.5, true)
+    task.wait(3.5)
+    popFrame:TweenPosition(UDim2.new(0.5, -160, 0, -100), Enum.EasingDirection.In, Enum.EasingStyle.Quad, 0.5, true)
+    task.wait(0.5)
+    popGui:Destroy()
+end)
+
+-- ==========================================
 -- 1. TẠO KHUNG GIAO DIỆN CHÍNH (PINK + RAINBOW BORDER)
 -- ==========================================
 local CustomUI = {}
@@ -60,9 +103,9 @@ function CustomUI.CreateWindow(titleText)
     titleLabel.Size = UDim2.new(1, -120, 1, 0)
     titleLabel.Position = UDim2.new(0, 15, 0, 0)
     titleLabel.BackgroundTransparency = 1
-    titleLabel.Text = titleText or "💖 PINK HUB - PRO"
+    titleLabel.Text = titleText or "💖 Knot_Hub | Dev: Hữu Tây"
     titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    titleLabel.TextSize = 15
+    titleLabel.TextSize = 14
     titleLabel.Font = Enum.Font.GothamBold
     titleLabel.TextXAlignment = Enum.TextXAlignment.Left
     titleLabel.Parent = topBar
@@ -72,7 +115,7 @@ function CustomUI.CreateWindow(titleText)
     closeBtn.Position = UDim2.new(1, -38, 0.5, -16)
     closeBtn.BackgroundColor3 = Color3.fromRGB(200, 40, 80)
     closeBtn.BackgroundTransparency = 0.2
-    closeBtn.Text = "x"
+    closeBtn.Text = "X"
     closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     closeBtn.TextSize = 14
     closeBtn.Font = Enum.Font.GothamBold
@@ -163,7 +206,7 @@ function CustomUI.CreateWindow(titleText)
     floatIcon.Size = UDim2.new(0, 45, 0, 45)
     floatIcon.Position = UDim2.new(0, 20, 0.5, -25)
     floatIcon.BackgroundColor3 = Color3.fromRGB(255, 105, 180)
-    floatIcon.Text = "K"
+    floatIcon.Text = "💖"
     floatIcon.TextSize = 20
     floatIcon.Parent = screenGui
 
@@ -309,17 +352,30 @@ function CustomUI:AddTab(tabName)
         dotCorner.CornerRadius = UDim.new(1, 0)
         dotCorner.Parent = dot
 
+        local function updateVisual(newState, fireCallback)
+            if toggled ~= newState then
+                toggled = newState
+                local targetPos = toggled and UDim2.new(1, -20, 0.5, -9) or UDim2.new(0, 2, 0.5, -9)
+                local targetColor = toggled and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 50, 90)
+                local dotColor = toggled and Color3.fromRGB(255, 105, 180) or Color3.fromRGB(255, 255, 255)
+                
+                TweenService:Create(dot, TweenInfo.new(0.15), {Position = targetPos, BackgroundColor3 = dotColor}):Play()
+                TweenService:Create(switch, TweenInfo.new(0.15), {BackgroundColor3 = targetColor}):Play()
+                
+                if fireCallback and callback then callback(toggled) end
+            end
+        end
+
         switch.MouseButton1Click:Connect(function()
-            toggled = not toggled
-            local targetPos = toggled and UDim2.new(1, -20, 0.5, -9) or UDim2.new(0, 2, 0.5, -9)
-            local targetColor = toggled and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 50, 90)
-            local dotColor = toggled and Color3.fromRGB(255, 105, 180) or Color3.fromRGB(255, 255, 255)
-            
-            TweenService:Create(dot, TweenInfo.new(0.15), {Position = targetPos, BackgroundColor3 = dotColor}):Play()
-            TweenService:Create(switch, TweenInfo.new(0.15), {BackgroundColor3 = targetColor}):Play()
-            
-            if callback then callback(toggled) end
+            updateVisual(not toggled, true)
         end)
+
+        -- Trả về object điều khiển trạng thái từ bên ngoài
+        return {
+            Set = function(state)
+                updateVisual(state, false)
+            end
+        }
     end
 
     function tabObj:AddSlider(text, min, max, default, callback)
@@ -410,8 +466,8 @@ end
 -- 3. LOGIC TÍNH NĂNG CHÍNH
 -- ==========================================
 
-local Window = CustomUI.CreateWindow("Knott_Hub | Made by: Hữu Tây")
-local MainTab = Window:AddTab("(Main) Chức năng")
+local Window = CustomUI.CreateWindow("💖 Knot_Hub | Dev: Hữu Tây")
+local MainTab = Window:AddTab("Chức năng")
 local VisualTab = Window:AddTab("ESP & Visuals")
 local LockOnTab = Window:AddTab("Lock On")
 
@@ -422,6 +478,11 @@ local bodyVelocity, bodyGyro
 local lockClosestEnabled = false
 local lockTargetEnabled = false
 local selectedTargetPlayer = nil
+local cachedClosestPlayer = nil
+
+-- Cấu hình phím tắt (Z: Target Select, X: Nearest)
+local KeyLockTarget = Enum.KeyCode.Z
+local KeyLockClosest = Enum.KeyCode.X
 
 -- Auto Block variables
 local autoBlockEnabled = false
@@ -529,27 +590,36 @@ local function toggleFly(state)
     end
 end
 
--- --- HÀM TÌM GẦN NHẤT ---
-local function getClosestPlayer()
+-- --- HÀM TÌM GẦN NHẤT 3D CHUẨN XÁC ---
+local function getClosestPlayer(myRoot)
     local target = nil
     local shortestDist = math.huge
-    local mousePos = UserInputService:GetMouseLocation()
+
+    if cachedClosestPlayer and cachedClosestPlayer ~= LocalPlayer then
+        local oldChar = getValidCharacter(cachedClosestPlayer)
+        if oldChar and oldChar:FindFirstChild("HumanoidRootPart") then
+            local dist = (oldChar.HumanoidRootPart.Position - myRoot.Position).Magnitude
+            if dist <= 35 then
+                shortestDist = dist + 6
+                target = cachedClosestPlayer
+            end
+        end
+    end
 
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer then
             local char = getValidCharacter(player)
             if char and char:FindFirstChild("HumanoidRootPart") then
-                local pos, onScreen = Camera:WorldToViewportPoint(char.HumanoidRootPart.Position)
-                if onScreen then
-                    local dist = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
-                    if dist < shortestDist then
-                        shortestDist = dist
-                        target = player
-                    end
+                local dist = (char.HumanoidRootPart.Position - myRoot.Position).Magnitude
+                if dist < shortestDist then
+                    shortestDist = dist
+                    target = player
                 end
             end
         end
     end
+
+    cachedClosestPlayer = target
     return target
 end
 
@@ -565,6 +635,31 @@ local function setHoldF(state)
         end
     end)
 end
+
+-- Khai báo biến UI Toggle để đồng bộ phím tắt
+local closestToggleUI, targetToggleUI
+local updatePlayerList
+
+-- --- XỬ LÝ SỰ KIỆN PHÍM BẮT (Z và X) ---
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == KeyLockTarget then
+        lockTargetEnabled = not lockTargetEnabled
+        targetListFrame.Visible = lockTargetEnabled
+        if targetToggleUI then targetToggleUI.Set(lockTargetEnabled) end
+        if lockTargetEnabled then
+            updatePlayerList()
+        else
+            selectedTargetPlayer = nil
+        end
+    elseif input.KeyCode == KeyLockClosest then
+        lockClosestEnabled = not lockClosestEnabled
+        if closestToggleUI then closestToggleUI.Set(lockClosestEnabled) end
+        if not lockClosestEnabled then
+            cachedClosestPlayer = nil
+        end
+    end
+end)
 
 -- --- RENDER LOOP (AUTO BLOCK & LOCK ON) ---
 RunService.RenderStepped:Connect(function()
@@ -615,8 +710,8 @@ RunService.RenderStepped:Connect(function()
         setHoldF(false)
 
         -- 2. Lock On thông thường khi không Auto Block
-        if lockClosestEnabled then
-            local target = getClosestPlayer()
+        if lockClosestEnabled and myRoot then
+            local target = getClosestPlayer(myRoot)
             local targetChar = getValidCharacter(target)
             if targetChar and targetChar:FindFirstChild("HumanoidRootPart") then
                 Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetChar.HumanoidRootPart.Position)
@@ -633,7 +728,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- --- DANH SÁCH CHỌN MỤC TIÊU ---
-local targetListFrame = Instance.new("ScrollingFrame")
+targetListFrame = Instance.new("ScrollingFrame")
 targetListFrame.Name = "TargetListFrame"
 targetListFrame.Size = UDim2.new(1, 0, 0, 220)
 targetListFrame.BackgroundTransparency = 1
@@ -656,7 +751,7 @@ targetListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(functio
     targetListFrame.CanvasSize = UDim2.new(0, 0, 0, targetListLayout.AbsoluteContentSize.Y + 10)
 end)
 
-local function updatePlayerList()
+updatePlayerList = function()
     for _, child in ipairs(targetListFrame:GetChildren()) do
         if child:IsA("TextButton") then child:Destroy() end
     end
@@ -799,7 +894,7 @@ RunService.RenderStepped:Connect(function()
     local myChar = getValidCharacter(LocalPlayer)
     local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
 
-    -- 1. Player ESP Render (Có onScreen check tiêu chuẩn)
+    -- 1. Player ESP Render
     for player, drawings in pairs(espDrawings) do
         local char = getValidCharacter(player)
         local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -970,11 +1065,12 @@ MainTab:AddToggle("👁️ Hiển thị Vùng Auto Block", false, function(state
 end)
 
 -- Tab Lock On
-LockOnTab:AddToggle("Khóa người chơi gần nhất (Closest)", false, function(state)
+closestToggleUI = LockOnTab:AddToggle("Khóa người chơi gần nhất (Closest) [Phím X]", false, function(state)
     lockClosestEnabled = state
+    if not state then cachedClosestPlayer = nil end
 end)
 
-LockOnTab:AddToggle("Khóa mục tiêu chỉ định (Target Select)", false, function(state)
+targetToggleUI = LockOnTab:AddToggle("Khóa mục tiêu chỉ định (Target Select) [Phím Z]", false, function(state)
     lockTargetEnabled = state
     targetListFrame.Visible = state
     if state then
